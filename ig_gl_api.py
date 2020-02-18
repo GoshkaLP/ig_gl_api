@@ -1,8 +1,7 @@
-from requests import get, Session
 from accessify import protected
 from bs4 import BeautifulSoup
 from json import loads
-#TODO: readme.md; other funcs
+from requests import get, Session
 
 
 class GetSession:
@@ -229,13 +228,25 @@ class IgApi:
         else:
             return {'status': 'failed', 'message': 'wrong url'}
 
+    def download_avatar(self, user):
+        if self.get_user_id(user):
+            url = 'https://instagram.com/' + user
+            url = self.sort_script(url, 1)['ProfilePage'][0]['graphql']['user']['profile_pic_url_hd']
+            return {'status': 'ok', 'url': url}
+        else:
+            return {'status': 'failed', 'message': 'wrong username'}
 
-def main():
-    username = 'goshka_rybkin'
-    password = 'ZewPycHk35'
-    session = GetSession(username, password).get_token()
-    api = IgApi(session)
-    val = api.download_post('https://www.instagram.com/p/3128371jd/')
-    print(val)
-
-main()
+    def get_username(self, user_id):
+        url = 'https://www.instagram.com/graphql/query/'
+        params = {'query_hash': '7c16654f22c819fb63d1183034a5162f',
+                  'variables': '{"user_id":"' + user_id + '","include_reel":true}'}
+        headers = {
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
+                          'Chrome/70.0.3538.77 Safari/537.36',
+            'x-csrftoken': self.cookies['csrftoken']}
+        req = get(url, params=params, headers=headers, cookies=self.cookies)
+        if req.json()['data']['user']:
+            username = req.json()['data']['user']['reel']['user']['username']
+            return {'status': 'ok', 'userane': username}
+        else:
+            return {'status': 'failed', 'message': 'wrong user_id'}
