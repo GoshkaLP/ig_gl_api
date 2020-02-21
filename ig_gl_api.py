@@ -5,40 +5,54 @@ from requests import get, Session
 
 
 class GetSession:
-    def __init__(self, username='', password=''):
+    def __init__(self, username='', password='', sessionid='', csrftoken=''):
         self.username = username
         self.password = password
+        self.sessionid = sessionid
+        self.csrftoken = csrftoken
 
     def get_token(self):
-        url = 'https://www.instagram.com/accounts/login/'
-        url_main = url + 'ajax/'
-        auth = {'username': self.username, 'password': self.password}
-        with Session() as s:
-            s.headers[
-                'user-agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) ' \
-                                'Chrome/70.0.3538.77 Safari/537.36'
-            resp = s.get(url)
-            s.headers['x-csrftoken'] = resp.cookies['csrftoken']
-            s.headers['referer'] = url
-            s.headers['cookie'] = 'csrftoken=' + resp.cookies['csrftoken']
+        if self.sessionid and self.csrftoken:
+            url = 'https://www.instagram.com/accounts/edit/'
+            cookies = {'sessionid': self.sessionid,
+                       'csrftoken': self.csrftoken}
+            req = get(url, cookies=cookies)
+            if 'not-logged-in' in req.text:
+                raise ValueError('Authorization error. Wrong sessionid and csrftoken cookies.')
+            else:
+                return cookies
+        elif self.username and self.password:
+            url = 'https://www.instagram.com/accounts/login/'
+            url_main = url + 'ajax/'
+            auth = {'username': self.username, 'password': self.password}
+            with Session() as s:
+                s.headers[
+                    'user-agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) ' \
+                                    'Chrome/70.0.3538.77 Safari/537.36'
+                resp = s.get(url)
+                s.headers['x-csrftoken'] = resp.cookies['csrftoken']
+                s.headers['referer'] = url
+                s.headers['cookie'] = 'csrftoken=' + resp.cookies['csrftoken']
 
-            resp = s.post(url_main, data=auth)
-        # 1-no errors
-        # 2-error
-        if resp.json()['status'] == 'fail':
-            if resp.json()['message'] == 'checkpoint_required':
-                raise ValueError('Authorization failed. Checkpoint required.')
-            elif resp.json()['message'] == 'Please wait a few':
-                raise ValueError('Authorization failed. Please wait a few.')
-        elif resp.json()['status'] == 'ok':
-            if 'authenticated' in resp.json().keys():
-                if resp.json()['authenticated']:
-                    if 'errors' not in resp.json().keys():
-                        cookies = {'sessionid': resp.cookies['sessionid'],
-                                   'csrftoken': resp.cookies['csrftoken']}
-                        return cookies
-                else:
-                    raise ValueError('Authorization error. Wrong username or password.')
+                resp = s.post(url_main, data=auth)
+            # 1-no errors
+            # 2-error
+            if resp.json()['status'] == 'fail':
+                if resp.json()['message'] == 'checkpoint_required':
+                    raise ValueError('Authorization failed. Checkpoint required.')
+                elif resp.json()['message'] == 'Please wait a few':
+                    raise ValueError('Authorization failed. Please wait a few.')
+            elif resp.json()['status'] == 'ok':
+                if 'authenticated' in resp.json().keys():
+                    if resp.json()['authenticated']:
+                        if 'errors' not in resp.json().keys():
+                            cookies = {'sessionid': resp.cookies['sessionid'],
+                                       'csrftoken': resp.cookies['csrftoken']}
+                            return cookies
+                    else:
+                        raise ValueError('Authorization error. Wrong username or password.')
+        else:
+            raise ValueError('Authorization failed. Invalid data.')
 
 
 class IgApi:
@@ -247,6 +261,6 @@ class IgApi:
         req = get(url, params=params, headers=headers, cookies=self.cookies)
         if req.json()['data']['user']:
             username = req.json()['data']['user']['reel']['user']['username']
-            return {'status': 'ok', 'userane': username}
+            return {'status': 'ok', 'username': username}
         else:
             return {'status': 'failed', 'message': 'wrong user_id'}

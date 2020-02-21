@@ -29,5 +29,14 @@ This expression will return a dictionary with content.
 - requests >= 2.22.0
 
 ### Notes:
-If your username and/or password are incorrect, the program will return `ValueError`.
-Also, sometimes, Instagram can block your requests.
+- If your username and/or password are incorrect, the program will return `ValueError`.
+- Also, sometimes, Instagram can block your requests.
+So, in this case you can use cookies: **csrftoken** and **sessionid** instead of **username** and **password** to get Session.  
+Example:  
+`
+session = GetSession(username="username", password="password")
+`  
+or  
+`
+session = GetSession(sessionid="sessionid", csrftoken="csrftoken")
+`
