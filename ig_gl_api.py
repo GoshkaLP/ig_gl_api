@@ -132,11 +132,12 @@ class IgApi:
                             else:
                                 res.update({'image_story': [url]})
                         elif i['__typename'] == 'GraphStoryVideo':
-                            url = i['video_resources'][0]['src']
+                            url_display = i['display_url']
+                            url_video = i['video_resources'][0]['src']
                             if res.get('video_story'):
-                                res['video_story'].append(url)
+                                res['video_story'].append([url_display, url_video])
                             else:
-                                res.update({'video_story': [url]})
+                                res.update({'video_story': [[url_display, url_video]]})
                     res.update({'status': 'ok'})
                     return res
                 else:
